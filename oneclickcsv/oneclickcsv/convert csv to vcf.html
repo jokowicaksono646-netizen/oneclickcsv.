@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convert CSV ke VCF (vCard)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    input[type="file"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: white;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    textarea {
+      width: 100%;
+      max-width: 600px;
+      height: 200px;
+      margin-top: 20px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h2>Convert CSV → VCF (vCard Kontak)</h2>
+
+  <input type="file" id="csvFile" accept=".csv">
+  <button onclick="convertCSVtoVCF()">Convert & Download VCF</button>
+
+  <textarea id="preview" placeholder="Preview hasil vCard..." readonly></textarea>
+
+  <script>
+    function convertCSVtoVCF() {
+      const fileInput = document.getElementById("csvFile");
+      const preview = document.getElementById("preview");
+
+      if (!fileInput.files.length) {
+        alert("Pilih file CSV terlebih dahulu!");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const text = e.target.result.trim();
+        const lines = text.split("\n");
+        let vcfData = "";
+
+        // Lewati header jika ada "NAMA,TELEPON"
+        let startIndex = lines[0].toUpperCase().includes("NAMA") ? 1 : 0;
+
+        for (let i = startIndex; i < lines.length; i++) {
+          const line = lines[i].replace(/"/g, "").trim();
+          if (!line) continue;
+
+          const [name, phone] = line.split(",");
+
+          let nomor = phone.trim();
+          if (!nomor.startsWith("+")) {
+            if (nomor.startsWith("62")) nomor = "+" + nomor;
+            else if (nomor.startsWith("0")) nomor = "+62" + nomor.slice(1);
+            else nomor = "+62" + nomor;
+          }
+
+          vcfData += `BEGIN:VCARD\nVERSION:3.0\nFN:${name.trim()}\nTEL;TYPE=CELL:${nomor}\nEND:VCARD\n`;
+        }
+
+        preview.value = vcfData;
+
+        // Simpan sebagai file .vcf
+        const blob = new Blob([vcfData], { type: "text/vcard;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "contacts.vcf";
+        link.click();
+      };
+
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
